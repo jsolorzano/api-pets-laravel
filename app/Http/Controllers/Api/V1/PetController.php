@@ -7,6 +7,8 @@ use App\Models\Pet;
 use Illuminate\Http\Request;
 use App\Http\Requests\V1\PetRequest;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Resources\V1\PetResource;
+use Illuminate\Support\Facades\Validator;
 
 class PetController extends Controller
 {
@@ -22,7 +24,7 @@ class PetController extends Controller
      */
     public function index()
     {
-        //
+        return PetResource::collection(Pet::latest()->paginate());
     }
 
     /**
@@ -71,7 +73,7 @@ class PetController extends Controller
      */
     public function show(Pet $pet)
     {
-        //
+        return new PetResource($pet);
     }
 
     /**
@@ -83,7 +85,34 @@ class PetController extends Controller
      */
     public function update(Request $request, Pet $pet)
     {
-        //
+        Validator::make($request->all(), [
+            'title' => 'max:191',
+            'image' => 'image|max:1024',
+            'description' => 'max:2000',
+        ])->validate();
+
+        if (Auth::id() !== $pet->user->id) {
+            return response()->json(['message' => 'You don\'t have permissions'], 403);
+        }
+
+        if (!empty($request->input('title'))) {
+            $pet->title = $request->input('title');
+        }
+        if (!empty($request->input('description'))) {
+            $pet->description = $request->input('description');
+        }
+        if (!empty($request->file('image'))) {
+            $url_image = $this->upload($request->file('image'));
+            $pet->image = $url_image;
+        }
+
+        $res = $pet->save();
+
+        if ($res) {
+            return response()->json(['message' => 'Pet update succesfully']);
+        }
+
+        return response()->json(['message' => 'Error to update pet'], 500);
     }
 
     /**
@@ -94,6 +123,12 @@ class PetController extends Controller
      */
     public function destroy(Pet $pet)
     {
-        //
+        $res = $pet->delete();
+
+        if ($res) {
+            return response()->json(['message' => 'Pet delete succesfully']);
+        }
+
+        return response()->json(['message' => 'Error to update pet'], 500);
     }
 }
