@@ -86,7 +86,7 @@ class PetController extends Controller
     public function update(Request $request, Pet $pet)
     {
         Validator::make($request->all(), [
-            'title' => 'max:191',
+            'name' => 'max:191',
             'image' => 'image|max:1024',
             'description' => 'max:2000',
         ])->validate();
